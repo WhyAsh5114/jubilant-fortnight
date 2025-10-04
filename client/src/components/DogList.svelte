@@ -18,7 +18,7 @@
     let error: string | null = null;
     let breeds: Breed[] = [];
     let selectedBreedId: string = '';
-    let selectedStatus: string = 'AVAILABLE';
+    let showOnlyAvailable: boolean = true;
 
     const fetchBreeds = async () => {
         try {
@@ -40,8 +40,8 @@
             if (selectedBreedId) {
                 params.append('breed_id', selectedBreedId);
             }
-            if (selectedStatus) {
-                params.append('status', selectedStatus);
+            if (showOnlyAvailable) {
+                params.append('status', 'AVAILABLE');
             }
 
             const url = `/api/dogs${params.toString() ? '?' + params.toString() : ''}`;
@@ -93,22 +93,17 @@
                 </select>
             </div>
 
-            <!-- Status Filter -->
-            <div>
-                <label for="status-filter" class="block text-sm font-medium text-slate-300 mb-2">
-                    Filter by Status
+            <!-- Available Only Checkbox -->
+            <div class="flex items-end">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input 
+                        type="checkbox"
+                        bind:checked={showOnlyAvailable}
+                        on:change={handleFilterChange}
+                        class="w-5 h-5 bg-slate-700/50 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
+                    />
+                    <span class="text-sm font-medium text-slate-300">Show only available dogs</span>
                 </label>
-                <select 
-                    id="status-filter"
-                    bind:value={selectedStatus}
-                    on:change={handleFilterChange}
-                    class="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                    <option value="">All Status</option>
-                    <option value="AVAILABLE">Available</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="ADOPTED">Adopted</option>
-                </select>
             </div>
         </div>
     </div>
