@@ -1,7 +1,8 @@
 import os
 from typing import Dict, List, Any, Optional
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 from models import init_db, db, Dog, Breed
+from models.dog import AdoptionStatus
 
 # Get the server directory path
 base_dir: str = os.path.abspath(os.path.dirname(__file__))
@@ -15,11 +16,27 @@ init_db(app)
 
 @app.route('/api/dogs', methods=['GET'])
 def get_dogs() -> Response:
+    # Build base query
     query = db.session.query(
         Dog.id, 
         Dog.name, 
-        Breed.name.label('breed')
+        Breed.name.label('breed'),
+        Dog.status
     ).join(Breed, Dog.breed_id == Breed.id)
+    
+    # Apply breed filter if provided
+    breed_id: Optional[str] = request.args.get('breed_id')
+    if breed_id and breed_id.isdigit():
+        query = query.filter(Dog.breed_id == int(breed_id))
+    
+    # Apply status filter if provided
+    status: Optional[str] = request.args.get('status')
+    if status:
+        try:
+            status_enum = AdoptionStatus[status.upper()]
+            query = query.filter(Dog.status == status_enum)
+        except KeyError:
+            pass  # Invalid status, ignore filter
     
     dogs_query = query.all()
     
@@ -28,7 +45,8 @@ def get_dogs() -> Response:
         {
             'id': dog.id,
             'name': dog.name,
-            'breed': dog.breed
+            'breed': dog.breed,
+            'status': dog.status.name
         }
         for dog in dogs_query
     ]

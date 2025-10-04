@@ -5,16 +5,48 @@
         id: number;
         name: string;
         breed: string;
+        status: string;
+    }
+
+    interface Breed {
+        id: number;
+        name: string;
     }
 
     export let dogs: Dog[] = [];
     let loading = true;
     let error: string | null = null;
+    let breeds: Breed[] = [];
+    let selectedBreedId: string = '';
+    let selectedStatus: string = 'AVAILABLE';
+
+    const fetchBreeds = async () => {
+        try {
+            const response = await fetch('/api/breeds');
+            if(response.ok) {
+                breeds = await response.json();
+            }
+        } catch (err) {
+            console.error('Failed to fetch breeds:', err);
+        }
+    };
 
     const fetchDogs = async () => {
         loading = true;
+        error = null;
         try {
-            const response = await fetch('/api/dogs');
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (selectedBreedId) {
+                params.append('breed_id', selectedBreedId);
+            }
+            if (selectedStatus) {
+                params.append('status', selectedStatus);
+            }
+
+            const url = `/api/dogs${params.toString() ? '?' + params.toString() : ''}`;
+            const response = await fetch(url);
+            
             if(response.ok) {
                 dogs = await response.json();
             } else {
@@ -27,13 +59,59 @@
         }
     };
 
+    const handleFilterChange = () => {
+        fetchDogs();
+    };
+
     onMount(() => {
+        fetchBreeds();
         fetchDogs();
     });
 </script>
 
 <div>
     <h2 class="text-2xl font-medium mb-6 text-slate-100">Available Dogs</h2>
+    
+    <!-- Filter Section -->
+    <div class="mb-6 p-4 bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-700/50">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Breed Filter -->
+            <div>
+                <label for="breed-filter" class="block text-sm font-medium text-slate-300 mb-2">
+                    Filter by Breed
+                </label>
+                <select 
+                    id="breed-filter"
+                    bind:value={selectedBreedId}
+                    on:change={handleFilterChange}
+                    class="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                    <option value="">All Breeds</option>
+                    {#each breeds as breed (breed.id)}
+                        <option value={breed.id}>{breed.name}</option>
+                    {/each}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label for="status-filter" class="block text-sm font-medium text-slate-300 mb-2">
+                    Filter by Status
+                </label>
+                <select 
+                    id="status-filter"
+                    bind:value={selectedStatus}
+                    on:change={handleFilterChange}
+                    class="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                    <option value="">All Status</option>
+                    <option value="AVAILABLE">Available</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="ADOPTED">Adopted</option>
+                </select>
+            </div>
+        </div>
+    </div>
     
     {#if loading}
         <!-- loading animation -->
@@ -71,7 +149,16 @@
                     <div class="p-6 relative">
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="relative z-10">
-                            <h3 class="text-xl font-semibold text-slate-100 mb-2 group-hover:text-blue-400 transition-colors">{dog.name}</h3>
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-xl font-semibold text-slate-100 group-hover:text-blue-400 transition-colors">{dog.name}</h3>
+                                {#if dog.status === 'AVAILABLE'}
+                                    <span class="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Available</span>
+                                {:else if dog.status === 'PENDING'}
+                                    <span class="px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Pending</span>
+                                {:else if dog.status === 'ADOPTED'}
+                                    <span class="px-2 py-1 text-xs font-medium bg-slate-500/20 text-slate-400 rounded-full border border-slate-500/30">Adopted</span>
+                                {/if}
+                            </div>
                             <p class="text-slate-400 mb-4">{dog.breed}</p>
                             <div class="mt-4 text-sm text-blue-400 font-medium flex items-center">
                                 <span>View details</span>
